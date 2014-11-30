@@ -1,0 +1,85 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{C6E0F209-7E14-493C-83CE-606CC552AD06}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>MvcBootEx</RootNamespace>
+    <AssemblyName>MvcBootEx</AssemblyName>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Configuration" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Web" />
+    <Reference Include="System.Web.Mvc, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL" />
+    <Reference Include="System.Web.WebPages, Version=2.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Bootex.cs" />
+    <Compile Include="Color.cs" />
+    <Compile Include="Form\BootExForm.cs" />
+    <Compile Include="Form\FormEx.cs" />
+    <Compile Include="Form\FormGroup.cs" />
+    <Compile Include="Form\FormGroupEx.cs" />
+    <Compile Include="Form\FormInputEx.cs" />
+    <Compile Include="Form\FormType.cs" />
+    <Compile Include="Form\ValidationEx.cs" />
+    <Compile Include="HtmlElement.cs" />
+    <Compile Include="HtmlEx.cs" />
+    <Compile Include="HtmlUtil.cs" />
+    <Compile Include="Html\AlertEx.cs" />
+    <Compile Include="Html\BadgeEx.cs" />
+    <Compile Include="Html\ButtonEx.cs" />
+    <Compile Include="Html\GlyphIcon.cs" />
+    <Compile Include="Html\IconEx.cs" />
+    <Compile Include="Html\LabelEx.cs" />
+    <Compile Include="Navigation\LinkEx.cs" />
+    <Compile Include="Navigation\MenuEx.cs" />
+    <Compile Include="Navigation\Nav.cs" />
+    <Compile Include="Navigation\NavBar.cs" />
+    <Compile Include="Navigation\NavBarEx.cs" />
+    <Compile Include="Navigation\NavBarMenu.cs" />
+    <Compile Include="Navigation\NavBarType.cs" />
+    <Compile Include="Navigation\NavEx.cs" />
+    <Compile Include="Navigation\NavItem.cs" />
+    <Compile Include="Navigation\NavType.cs" />
+    <Compile Include="Position.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>
