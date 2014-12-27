@@ -94,6 +94,44 @@ namespace MvcBootEx.Form
             form.BootEx.Html.ViewContext.Writer.Write(group.ToString());
         }
 
+        public static void DropDownListRow<TModel>(this BootExForm<TModel> form,
+            string name,
+            IEnumerable<SelectListItem> selectList,
+            string labelText = null,
+            object htmlAttributes = null)
+        {
+            var group = new TagBuilder("div");
+            group.AddCssClass("form-group");
+            var htmlAttr = HtmlUtil.AddCssClass(htmlAttributes, "form-control");
+
+            var labelClassCss = "control-label";
+
+            if (form.FormType == FormType.Horizontal)
+            {
+                labelClassCss += " col-sm-2";
+            }
+
+            var label = "";
+            if (!String.IsNullOrEmpty(labelText))
+            {
+                label = form.BootEx.Html.Label(name, labelText, new {@class = labelClassCss}).ToHtmlString();
+            }
+
+            var input = form.BootEx.Html.DropDownList(name, selectList, htmlAttr);
+
+            if (form.FormType == FormType.Horizontal)
+            {
+                var inputWrapper = new TagBuilder("div");
+                inputWrapper.AddCssClass("col-sm-10");
+                input = MvcHtmlString.Create(inputWrapper.ToString(TagRenderMode.StartTag) +
+                                             input +
+                                             inputWrapper.ToString(TagRenderMode.EndTag));
+            }
+
+            group.InnerHtml = label + input;
+            form.BootEx.Html.ViewContext.Writer.Write(group.ToString());
+        }
+
         public static void DropDownListRowFor<TModel, TProperty>(this BootExForm<TModel> form,
            Expression<Func<TModel, TProperty>> expression,
             IEnumerable<SelectListItem> selectList,

@@ -64,6 +64,7 @@
     <Compile Include="Html\LabelEx.cs" />
     <Compile Include="Navigation\LinkEx.cs" />
     <Compile Include="Navigation\MenuEx.cs" />
+    <Compile Include="Navigation\MenuHtmlElement.cs" />
     <Compile Include="Navigation\Nav.cs" />
     <Compile Include="Navigation\NavBar.cs" />
     <Compile Include="Navigation\NavBarEx.cs" />

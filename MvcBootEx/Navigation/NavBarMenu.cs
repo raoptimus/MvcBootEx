@@ -1,16 +1,15 @@
 ﻿namespace MvcBootEx.Navigation
 {
-    public class NavBarMenu : HtmlElement
+    public class NavBarMenu : MenuHtmlElement
     {
-        public NavBarMenu(BootEx bootEx)
-            : base(bootEx, "ul")
+        public NavBarMenu(BootEx bootex) : base(bootex)
         {
-
         }
 
-        public void EndBarMenu()
+        public override void Dispose()
         {
-            End();
+            WriteItems();
+            base.Dispose();
         }
     }
 }
