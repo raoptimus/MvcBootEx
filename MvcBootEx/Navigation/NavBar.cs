@@ -39,8 +39,8 @@ namespace MvcBootEx.Navigation
             }
 
             var mobileHtml = new StringBuilder();
-            mobileHtml.Append("<button type=\"button\" class=\"navbar-toggle\" data-toggle=\"collapse\" data-target=\"#bs-example-navbar-collapse-1\">");
-            mobileHtml.Append("<span class=\"sr-only\">Toggle navigation</span>");
+            mobileHtml.Append("<button type=\"button\" class=\"navbar-toggle\" data-toggle=\"collapse\" data-target=\"#navbar-collapse-1\">");
+            mobileHtml.Append("<span class=\"sr-only\"></span>");
             mobileHtml.Append("<span class=\"icon-bar\"></span>");
             mobileHtml.Append("<span class=\"icon-bar\"></span>");
             mobileHtml.Append("<span class=\"icon-bar\"></span>");
@@ -81,7 +81,8 @@ namespace MvcBootEx.Navigation
                 return;
 
             _menuWrapper = new HtmlElement(BootEx, "div",
-                new {@class = "collapse navbar-collapse", @id = "bs-example-navbar-collapse-1"});
+                new {@class = "collapse navbar-collapse", @id = "navbar-collapse-1"});
+            _menuWrapper.Begin();
         }
     }
 }
