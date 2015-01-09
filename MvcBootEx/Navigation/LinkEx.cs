@@ -177,6 +177,7 @@ namespace MvcBootEx.Navigation
             if (!icons.IsEmpty())
             {
                 linkText = bootex.Icon(icons) + " " + linkText;
+                builder.AddCssClass("btn");
             }
 
             builder.InnerHtml = linkText;
