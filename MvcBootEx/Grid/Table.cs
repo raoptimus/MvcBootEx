@@ -117,7 +117,7 @@ namespace MvcBootEx.Grid
 
             if (PageCount > 1)
             {
-                footer = item => PagerList(mode, firstText, previousText, nextText, lastText, numericLinksCount, false, null);
+                footer = item => PagerList(mode, firstText, previousText, nextText, lastText, numericLinksCount, false, footerStyle);
             }
 
             return Table(tableStyle, headerStyle, footerStyle, rowStyle, alternatingRowStyle, selectedRowStyle, caption, displayHeader,
@@ -169,19 +169,6 @@ namespace MvcBootEx.Grid
             return PagerList(mode, firstText, previousText, nextText, lastText, numericLinksCount, true, null);
         }
 
-        public HelperResult Pager(
-            WebGridPagerModes mode,
-            string firstText,
-            string previousText,
-            string nextText,
-            string lastText,
-            int numericLinksCount,
-            string paginationStyle
-            )
-        {
-            return PagerList(mode, firstText, previousText, nextText, lastText, numericLinksCount, true, paginationStyle);
-        }
-
         private HelperResult PagerList(
             WebGridPagerModes mode,
             string firstText,
@@ -193,7 +180,9 @@ namespace MvcBootEx.Grid
             string paginationStyle
             )
         {
-            int lastPage = PageCount - 1;
+            int currentPage = PageIndex;
+            int totalPages = PageCount;
+            int lastPage = totalPages - 1;
 
             var nav = new TagBuilder("nav");
             nav.AddCssClass(paginationStyle);
@@ -202,7 +191,7 @@ namespace MvcBootEx.Grid
 
             var li = new List<TagBuilder>();
 
-            if (TotalRowCount <= PageCount)
+            if (totalPages <= 1)
             {
                 return new HelperResult(writer => writer.Write(string.Empty));
             }
@@ -219,7 +208,7 @@ namespace MvcBootEx.Grid
                     InnerHtml = GridLink(this, GetPageUrl(0), firstText)
                 };
 
-                if (PageIndex == 0)
+                if (currentPage == 0)
                 {
                     part.MergeAttribute("class", "disabled");
                 }
@@ -235,14 +224,14 @@ namespace MvcBootEx.Grid
                     previousText = "Prev";
                 }
 
-                int page = PageIndex == 0 ? 0 : PageIndex - 1;
+                int page = currentPage == 0 ? 0 : currentPage - 1;
 
                 var part = new TagBuilder("li")
                 {
                     InnerHtml = GridLink(this, GetPageUrl(page), previousText)
                 };
 
-                if (PageIndex == 0)
+                if (currentPage == 0)
                 {
                     part.MergeAttribute("class", "disabled");
                 }
@@ -251,9 +240,9 @@ namespace MvcBootEx.Grid
 
             }
 
-            if (ModeEnabled(mode, WebGridPagerModes.Numeric) && (TotalRowCount > 1))
+            if (ModeEnabled(mode, WebGridPagerModes.Numeric) && (totalPages > 1))
             {
-                int last = PageIndex + (numericLinksCount / 2);
+                int last = currentPage + (numericLinksCount / 2);
                 int first = last - numericLinksCount + 1;
                 if (last > lastPage)
                 {
@@ -273,7 +262,7 @@ namespace MvcBootEx.Grid
                         InnerHtml = GridLink(this, GetPageUrl(i), pageText)
                     };
 
-                    if (i == PageIndex)
+                    if (i == currentPage)
                     {
                         part.MergeAttribute("class", "active");
                     }
@@ -290,14 +279,14 @@ namespace MvcBootEx.Grid
                     nextText = "Next";
                 }
 
-                int page = PageIndex == lastPage ? lastPage : PageIndex + 1;
+                int page = currentPage == lastPage ? lastPage : currentPage + 1;
 
                 var part = new TagBuilder("li")
                 {
                     InnerHtml = GridLink(this, GetPageUrl(page), nextText)
                 };
 
-                if (PageIndex == lastPage)
+                if (currentPage == lastPage)
                 {
                     part.MergeAttribute("class", "disabled");
                 }
@@ -318,7 +307,7 @@ namespace MvcBootEx.Grid
                     InnerHtml = GridLink(this, GetPageUrl(lastPage), lastText)
                 };
 
-                if (PageIndex == lastPage)
+                if (currentPage == lastPage)
                 {
                     part.MergeAttribute("class", "disabled");
                 }
