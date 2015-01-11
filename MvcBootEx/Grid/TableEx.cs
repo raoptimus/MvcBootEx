@@ -9,6 +9,7 @@ namespace MvcBootEx.Grid
             IEnumerable<string> columnNames = null,
             string defaultSort = null,
             int rowsPerPage = 10,
+            bool canPage = true,
             bool canSort = true,
             string ajaxUpdateContainerId = null,
             string ajaxUpdateCallback = null,
@@ -24,7 +25,7 @@ namespace MvcBootEx.Grid
             bool condensed = true
             )
         {
-            return new Table<T>(source, columnNames, defaultSort, rowsPerPage, canSort,
+            return new Table<T>(source, columnNames, defaultSort, rowsPerPage, canPage, canSort,
                 ajaxUpdateContainerId, ajaxUpdateCallback, fieldNamePrefix, pageFieldName, selectionFieldName,
                 sortFieldName, sortDirectionFieldName, striped, bordered, hovered, responsive, condensed);
         }

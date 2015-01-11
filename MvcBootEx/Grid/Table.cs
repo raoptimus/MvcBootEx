@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.Globalization;
+using System.Linq;
+using System.Text;
 using System.Web;
 using System.Web.Helpers;
 using System.Web.Mvc;
@@ -15,12 +18,15 @@ namespace MvcBootEx.Grid
         public bool Hovered { get; private set; }
         public bool Responsive { get; private set; }
         public bool Condensed { get; private set; }
+        private bool _canPage { get; set; }
+        private int _totalRowCount { get; set; }
 
         public Table(
             IEnumerable<T> source = null,
             IEnumerable<string> columnNames = null,
             string defaultSort = null,
             int rowsPerPage = 10,
+            bool canPage = true,
             bool canSort = true,
             string ajaxUpdateContainerId = null,
             string ajaxUpdateCallback = null,
@@ -36,7 +42,7 @@ namespace MvcBootEx.Grid
             bool condensed = true
             )
             : base(
-                (IEnumerable<object>) source, columnNames, defaultSort, rowsPerPage, true, canSort,
+                (IEnumerable<object>) source, columnNames, defaultSort, rowsPerPage, canPage, canSort,
                 ajaxUpdateContainerId, ajaxUpdateCallback, fieldNamePrefix, pageFieldName, selectionFieldName,
                 sortFieldName, sortDirectionFieldName)
         {
@@ -45,6 +51,7 @@ namespace MvcBootEx.Grid
             Hovered = hovered;
             Responsive = responsive;
             Condensed = condensed;
+            _canPage = canPage;
         }
 
         /// <summary>
@@ -169,6 +176,111 @@ namespace MvcBootEx.Grid
             return PagerList(mode, firstText, previousText, nextText, lastText, numericLinksCount, true, null);
         }
 
+        public new int TotalRowCount
+        {
+            get
+            {
+                if (_totalRowCount > 0)
+                {
+                    return _totalRowCount;
+                }
+
+                if (!_canPage)
+                {
+                    return 1;
+                }
+
+                return base.TotalRowCount;
+            }
+            set { _totalRowCount = value; }
+        }
+
+        public new int PageCount
+        {
+            get
+            {
+                return (int)Math.Ceiling((double)TotalRowCount / RowsPerPage);
+            }
+        }
+        
+        public new string GetPageUrl(int pageIndex)
+        {
+            if ((pageIndex < 0) || (pageIndex >= PageCount))
+            {
+                throw new ArgumentOutOfRangeException("pageIndex", String.Format(CultureInfo.CurrentCulture, "Argument Must Be Between {0}, {1}", 0, (PageCount - 1)));
+            }
+
+            var queryString = new NameValueCollection(1);
+            queryString[PageFieldName] = (pageIndex + 1L).ToString(CultureInfo.CurrentCulture);
+            return GetPath(queryString, SelectionFieldName);
+        }
+        private static string GetSortDirectionString(SortDirection sortDir)
+        {
+            return (sortDir == SortDirection.Ascending) ? "ASC" : "DESC";
+        }
+        private string GetPath(NameValueCollection queryString, params string[] exclusions)
+        {
+            var temp = new NameValueCollection(HttpContext.Current.Request.QueryString);
+            // update current query string in case values were set programmatically
+            if (temp.AllKeys.Contains(PageFieldName))
+            {
+                temp.Set(PageFieldName, (PageIndex + 1L).ToString(CultureInfo.CurrentCulture));
+            }
+            if (temp.AllKeys.Contains(SelectionFieldName))
+            {
+                if (SelectedIndex < 0)
+                {
+                    temp.Remove(SelectionFieldName);
+                }
+                else
+                {
+                    temp.Set(SelectionFieldName, (SelectedIndex + 1L).ToString(CultureInfo.CurrentCulture));
+                }
+            }
+            if (temp.AllKeys.Contains(SortFieldName))
+            {
+                if (String.IsNullOrEmpty(SortColumn))
+                {
+                    temp.Remove(SortFieldName);
+                }
+                else
+                {
+                    temp.Set(SortFieldName, SortColumn);
+                }
+            }
+            if (temp.AllKeys.Contains(SortDirectionFieldName))
+            {
+                temp.Set(SortDirectionFieldName, GetSortDirectionString(SortDirection));
+            }
+
+            // remove fields from exclusions list
+            foreach (var key in exclusions)
+            {
+                temp.Remove(key);
+            }
+            // replace with new field values
+            foreach (string key in queryString.Keys)
+            {
+                temp.Set(key, queryString[key]);
+            }
+            queryString = temp;
+
+            var sb = new StringBuilder(HttpContext.Current.Request.Path);
+
+            sb.Append("?");
+            for (int i = 0; i < queryString.Count; i++)
+            {
+                if (i > 0)
+                {
+                    sb.Append("&");
+                }
+                sb.Append(HttpUtility.UrlEncode(queryString.Keys[i]));
+                sb.Append("=");
+                sb.Append(HttpUtility.UrlEncode(queryString[i]));
+            }
+            return sb.ToString();
+        }
+
         private HelperResult PagerList(
             WebGridPagerModes mode,
             string firstText,
@@ -205,7 +317,7 @@ namespace MvcBootEx.Grid
 
                 var part = new TagBuilder("li")
                 {
-                    InnerHtml = GridLink(this, GetPageUrl(0), firstText)
+                    InnerHtml = GridLink(GetPageUrl(0), firstText)
                 };
 
                 if (currentPage == 0)
@@ -228,7 +340,7 @@ namespace MvcBootEx.Grid
 
                 var part = new TagBuilder("li")
                 {
-                    InnerHtml = GridLink(this, GetPageUrl(page), previousText)
+                    InnerHtml = GridLink(GetPageUrl(page), previousText)
                 };
 
                 if (currentPage == 0)
@@ -237,7 +349,6 @@ namespace MvcBootEx.Grid
                 }
 
                 li.Add(part);
-
             }
 
             if (ModeEnabled(mode, WebGridPagerModes.Numeric) && (totalPages > 1))
@@ -259,7 +370,7 @@ namespace MvcBootEx.Grid
                     var pageText = (i + 1).ToString(CultureInfo.InvariantCulture);
                     var part = new TagBuilder("li")
                     {
-                        InnerHtml = GridLink(this, GetPageUrl(i), pageText)
+                        InnerHtml = GridLink(GetPageUrl(i), pageText)
                     };
 
                     if (i == currentPage)
@@ -283,7 +394,7 @@ namespace MvcBootEx.Grid
 
                 var part = new TagBuilder("li")
                 {
-                    InnerHtml = GridLink(this, GetPageUrl(page), nextText)
+                    InnerHtml = GridLink(GetPageUrl(page), nextText)
                 };
 
                 if (currentPage == lastPage)
@@ -304,7 +415,7 @@ namespace MvcBootEx.Grid
 
                 var part = new TagBuilder("li")
                 {
-                    InnerHtml = GridLink(this, GetPageUrl(lastPage), lastText)
+                    InnerHtml = GridLink(GetPageUrl(lastPage), lastText)
                 };
 
                 if (currentPage == lastPage)
@@ -342,12 +453,13 @@ namespace MvcBootEx.Grid
         {
             return (mode & modeCheck) == modeCheck;
         }
-        private static String GridLink(WebGrid webGrid, string url, string text)
+        private String GridLink(string url, string text)
         {
             var builder = new TagBuilder("a");
             builder.SetInnerText(text);
             builder.MergeAttribute("href", url);
-            if (webGrid.IsAjaxEnabled)
+
+            if (IsAjaxEnabled)
             {
                 builder.MergeAttribute("data-swhglnk", "true");
             }
