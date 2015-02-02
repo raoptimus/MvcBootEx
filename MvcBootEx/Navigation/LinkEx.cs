@@ -169,26 +169,31 @@ namespace MvcBootEx.Navigation
                 throw new ArgumentException(@"Null or empty", "linkText");
             }
 
-            linkText = HttpUtility.HtmlEncode(linkText);
-            var builder = new TagBuilder("a");
+            var span = new TagBuilder("span");
+            span.AddCssClass("txt");
+            span.SetInnerText(linkText);
+
+            var a = new TagBuilder("a");
             var attr = HtmlHelper.AnonymousObjectToHtmlAttributes(htmlAttributes);
-            builder.MergeAttributes(attr);
-
-            if (!icons.IsEmpty())
-            {
-                linkText = bootex.Icon(icons) + " " + linkText;
-//                builder.AddCssClass("btn");
-            }
-
-            builder.InnerHtml = linkText;
-            builder.MergeAttribute("href", linkUrl);
+            a.MergeAttributes(attr);
+            a.MergeAttribute("href", linkUrl);
 
             if (isActive || linkUrl == HttpContext.Current.Request.RawUrl)// || IsActiveUrl(linkUrl))
             {
-                builder.AddCssClass("active");
+                a.AddCssClass("active");
             }
 
-            return new MvcHtmlString(builder.ToString());
+            if (!icons.IsEmpty())
+            {
+                a.InnerHtml = bootex.Icon(icons) + " " + span;
+//                builder.AddCssClass("btn");
+            }
+            else
+            {
+                a.InnerHtml = span.ToString();
+            }
+
+            return new MvcHtmlString(a.ToString());
         }
 
         private static readonly string[] _skipGetParams = { "page", "sort", "skip", "sortdir" };

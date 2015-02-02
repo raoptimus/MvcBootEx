@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using System.Web.Mvc;
+using System.Web.UI.WebControls;
 
 namespace MvcBootEx.Navigation
 {
@@ -43,34 +44,47 @@ namespace MvcBootEx.Navigation
 
             foreach (var item in _items)
             {
-                if (item.ChildItems.Any()) //TODO dropdown menu
-                {
-
-                }
-                else
-                {
-                    var tag = new TagBuilder("li");
-                    tag.MergeAttributes(HtmlHelper.AnonymousObjectToHtmlAttributes(item.HtmlAttributes));
-
-                    var link = BootEx.ActiveLink(item.LinkText, item.Action, item.Controller, item.RouteValues,
-                        item.HtmlAttributes, item.Icons).ToString();
-
-                    if (!item.IsActive && !existsActive)
-                    {
-                        item.IsActive = LinkEx.IsCurrentRoute(item.Action, item.Controller, item.RouteValues, false);
-                        existsActive = item.IsActive;
-                    }
-
-                    if (item.IsActive)
-                    {
-                        tag.AddCssClass("active");
-                    }
-
-                    tag.InnerHtml = link;
-
-                    ViewContext.Writer.Write(tag.ToString());
-                }
+                WriteItem(item, existsActive);
             }
+        }
+
+        protected void WriteItem(NavItem item, bool existsActive)
+        {
+            var li = new TagBuilder("li");
+            li.MergeAttributes(HtmlHelper.AnonymousObjectToHtmlAttributes(item.HtmlAttributes));
+
+            var link = BootEx.ActiveLink(item.LinkText, item.Action, item.Controller, item.RouteValues,
+                item.HtmlAttributes, item.Icons).ToString();
+
+            if (!item.IsActive && !existsActive)
+            {
+                item.IsActive = LinkEx.IsCurrentRoute(item.Action, item.Controller, item.RouteValues, false);
+                existsActive = item.IsActive;
+            }
+
+            if (item.IsActive)
+            {
+                li.AddCssClass("active");
+            }
+
+            ViewContext.Writer.Write(li.ToString(TagRenderMode.StartTag));
+            ViewContext.Writer.Write(link);
+
+            if (item.ChildItems.Any())
+            {
+                var ul = new TagBuilder("ul");
+                ul.AddCssClass("sub");
+                ViewContext.Writer.Write(ul.ToString(TagRenderMode.StartTag));
+
+                foreach (var child in item.ChildItems)
+                {
+                    WriteItem(child, existsActive);
+                }
+
+                ViewContext.Writer.Write(ul.ToString(TagRenderMode.EndTag));
+            }
+
+            ViewContext.Writer.Write(li.ToString(TagRenderMode.EndTag));
         }
     }
 }
