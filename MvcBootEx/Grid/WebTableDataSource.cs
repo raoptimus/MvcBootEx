@@ -17,6 +17,7 @@ namespace MvcBootEx.Grid
         private readonly IEnumerable<object> _values;
         private readonly bool _canPage;
         private readonly bool _canSort;
+        private readonly int _totalRowCount;
 
         public SortInfo DefaultSort { get; set; }
 
@@ -24,17 +25,18 @@ namespace MvcBootEx.Grid
 
         public int TotalRowCount
         {
-            get { return _values.Count(); }
+            get { return _totalRowCount; }
         }
 
         public WebTableDataSource(WebTable grid, IEnumerable<object> values, Type elementType, bool canPage,
             bool canSort)
         {
-            this._grid = grid;
-            this._values = values;
-            this._elementType = elementType;
-            this._canPage = canPage;
-            this._canSort = canSort;
+            _grid = grid;
+            _values = values;
+            _elementType = elementType;
+            _canPage = canPage;
+            _canSort = canSort;
+            _totalRowCount = _values.Count();
         }
 
         public IList<WebTableRow> GetRows(SortInfo sortInfo, int pageIndex)

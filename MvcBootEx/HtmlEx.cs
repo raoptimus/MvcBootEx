@@ -9,9 +9,9 @@ namespace MvcBootEx
             return new BootEx<TModel>(htmlHelper);
         }
 
-        public static BootEx BootEx(this HtmlHelper htmlHelper)
-        {
-            return new BootEx(htmlHelper);
-        }
+//        public static BootEx BootEx(this HtmlHelper htmlHelper)
+//        {
+//            return new BootEx(htmlHelper);
+//        }
     }
 }
