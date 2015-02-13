@@ -10,18 +10,17 @@ using System.Web;
 
 namespace MvcBootEx.Grid
 {
-    public class WebTableRow : DynamicObject, IEnumerable<object>, IEnumerable
+    public class WebTableRow<T> : IEnumerable<T>
     {
         private const string ROW_INDEX_MEMBER_NAME = "ROW";
 
-        private const BindingFlags BindFlags =
+        private const BindingFlags BIND_FLAGS =
             BindingFlags.IgnoreCase | BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public;
 
-        private WebTable _grid;
-        private IDynamicMetaObjectProvider _dynamic;
-        private int _rowIndex;
-        private object _value;
-        private IEnumerable<object> _values;
+        private readonly WebTable<T>  _grid;
+        private readonly int _rowIndex;
+        private readonly T _value;
+        private IEnumerable<T> _values;
 
         /// <summary>
         /// Gets an object that contains a property member for each value in the row.
@@ -30,9 +29,9 @@ namespace MvcBootEx.Grid
         /// <returns>
         /// An object that contains each value in the row as a property.
         /// </returns>
-        public object Value
+        public T Value
         {
-            get { return this._value; }
+            get { return _value; }
         }
 
         /// <summary>
@@ -42,9 +41,9 @@ namespace MvcBootEx.Grid
         /// <returns>
         /// The <see cref="T:System.Web.Helpers.WebGrid"/> instance that contains the row.
         /// </returns>
-        public WebTable WebGrid
+        public WebTable<T> WebGrid
         {
-            get { return this._grid; }
+            get { return _grid; }
         }
 
         /// <summary>
@@ -60,14 +59,16 @@ namespace MvcBootEx.Grid
             get
             {
                 if (string.IsNullOrEmpty(name))
-                    throw new ArgumentException("Argument_Cannot_Be_Null_Or_Empty", "name");
-                object result = (object) null;
-                if (this.TryGetMember(name, out result))
+                    throw new ArgumentException("Argument Cannot Be Null Or Empty", "name");
+                object result;
+
+                if (TryGetMember(name, out result))
                     return result;
+
                 throw new InvalidOperationException(string.Format(CultureInfo.CurrentCulture, "WebGrid_ColumnNotFound",
                     new object[1]
                     {
-                        (object) name
+                        name
                     }));
             }
         }
@@ -84,8 +85,9 @@ namespace MvcBootEx.Grid
         {
             get
             {
-                if (index < 0 || index >= this._grid.ColumnNames.Count())
+                if (index < 0 || index >= _grid.ColumnNames.Count())
                     throw new ArgumentOutOfRangeException("index");
+
                 return this.Skip(index).First();
             }
         }
@@ -94,17 +96,16 @@ namespace MvcBootEx.Grid
         /// Initializes a new instance of the <see cref="T:System.Web.Helpers.WebGridRow"/> class using the specified <see cref="T:System.Web.Helpers.WebGrid"/> instance, row value, and index.
         /// </summary>
         /// <param name="webGrid">The <see cref="T:System.Web.Helpers.WebGrid"/> instance that contains the row.</param><param name="value">An object that contains a property member for each value in the row.</param><param name="rowIndex">The index of the row.</param>
-        public WebTableRow(WebTable webGrid, object value, int rowIndex)
+        public WebTableRow(WebTable<T> webGrid, T value, int rowIndex)
         {
-            this._grid = webGrid;
-            this._value = value;
-            this._rowIndex = rowIndex;
-            this._dynamic = value as IDynamicMetaObjectProvider;
+            _grid = webGrid;
+            _value = value;
+            _rowIndex = rowIndex;
         }
 
         IEnumerator IEnumerable.GetEnumerator()
         {
-            return (IEnumerator) this.GetEnumerator();
+            return GetEnumerator();
         }
 
         /// <summary>
@@ -114,11 +115,12 @@ namespace MvcBootEx.Grid
         /// <returns>
         /// An enumerator that can be used to iterate through the values of the row.
         /// </returns>
-        public IEnumerator<object> GetEnumerator()
+        public IEnumerator<T> GetEnumerator()
         {
-            if (this._values == null)
-                this._values = this._grid.ColumnNames.Select((Func<string, object>) (c => WebTable.GetMember(this, c)));
-            return this._values.GetEnumerator();
+            if (_values == null)
+                _values = _grid.ColumnNames.Select((Func<string, T>) (c => WebTable<T>.GetMember(this, c)));
+
+            return _values.GetEnumerator();
         }
 
         /// <summary>
@@ -133,7 +135,8 @@ namespace MvcBootEx.Grid
         {
             if (string.IsNullOrEmpty(text))
                 text = "Select";
-            return WebTableRenderer.GridLink(this._grid, this.GetSelectUrl(), text);
+
+            return WebTableRenderer<T>.GridLink(_grid, GetSelectUrl(), text);
         }
 
         /// <summary>
@@ -146,9 +149,9 @@ namespace MvcBootEx.Grid
         public string GetSelectUrl()
         {
             var queryString = new NameValueCollection(1);
-            queryString[this.WebGrid.SelectionFieldName] =
-                ((long) this._rowIndex + 1L).ToString((IFormatProvider) CultureInfo.CurrentCulture);
-            return this.WebGrid.GetPath(queryString, new string[0]);
+            queryString[WebGrid.SelectionFieldName] = (_rowIndex + 1L).ToString(CultureInfo.CurrentCulture);
+
+            return WebGrid.GetPath(queryString, new string[0]);
         }
 
         /// <summary>
@@ -159,24 +162,22 @@ namespace MvcBootEx.Grid
         /// true if the value of the item was successfully retrieved; otherwise, false.
         /// </returns>
         /// <param name="binder">The getter of the bound property member.</param><param name="result">When this method returns, contains an object that holds the value of the item described by <paramref name="binder"/>. This parameter is passed uninitialized.</param>
-        public override bool TryGetMember(GetMemberBinder binder, out object result)
+        public bool TryGetMember(GetMemberBinder binder, out object result)
         {
-            result = (object) null;
-            if (this.TryGetRowIndex(binder.Name, out result) ||
-                this._dynamic != null && DynamicHelper.TryGetMemberValue((object) this._dynamic, binder, out result))
+            result = null;
+            if (TryGetRowIndex(binder.Name, out result) || ( _value != null && TryGetMember(_value, binder.Name, out result)))
                 return true;
-            else
-                return WebTableRow.TryGetComplexMember(this._value, binder.Name, out result);
+
+            return TryGetComplexMember(_value, binder.Name, out result);
         }
 
         internal bool TryGetMember(string memberName, out object result)
         {
-            result = (object) null;
-            if (this.TryGetRowIndex(memberName, out result) ||
-                this._dynamic != null && DynamicHelper.TryGetMemberValue((object) this._dynamic, memberName, out result))
+            result = null;
+            if (TryGetRowIndex(memberName, out result) || (_value != null &&  TryGetMember(_value, memberName, out result)))
                 return true;
-            else
-                return WebTableRow.TryGetComplexMember(this._value, memberName, out result);
+
+            return TryGetComplexMember(_value, memberName, out result);
         }
 
         /// <summary>
@@ -188,54 +189,48 @@ namespace MvcBootEx.Grid
         /// </returns>
         public override string ToString()
         {
-            return this._value.ToString();
+            return _value.ToString();
         }
 
         private bool TryGetRowIndex(string memberName, out object result)
         {
-            result = (object) null;
+            result = null;
             if (string.IsNullOrEmpty(memberName) || memberName != "ROW")
                 return false;
-            result = (object) this._rowIndex;
+            result = _rowIndex;
+
             return true;
         }
 
-        private static bool TryGetComplexMember(object obj, string name, out object result)
+        private static bool TryGetComplexMember(T obj, string name, out object result)
         {
-            result = (object) null;
+            result = null;
             string str = name;
-            char[] chArray = new char[1]
+            foreach (string name1 in str.Split('.'))
             {
-                '.'
-            };
-            foreach (string name1 in str.Split(chArray))
-            {
-                if (obj == null || !WebTableRow.TryGetMember(obj, name1, out result))
-                {
-                    result = (object) null;
-                    return false;
-                }
-                else
-                    obj = result;
+                if (obj != null && TryGetMember(obj, name1, out result)) 
+                    continue;
+
+                result = null;
+                return false;
             }
             return true;
         }
 
-        private static bool TryGetMember(object obj, string name, out object result)
+        private static bool TryGetMember(T obj, string name, out object result)
         {
             PropertyInfo property = obj.GetType()
                 .GetProperty(name,
                     BindingFlags.IgnoreCase | BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public);
-            if (property != (PropertyInfo) null && property.GetIndexParameters().Length == 0)
+
+            if (property != null && property.GetIndexParameters().Length == 0)
             {
-                result = property.GetValue(obj, (object[]) null);
+                result = property.GetValue(obj, null);
                 return true;
             }
-            else
-            {
-                result = (object) null;
-                return false;
-            }
+
+            result = null;
+            return false;
         }
     }
 }

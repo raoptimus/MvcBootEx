@@ -2,59 +2,31 @@
 
 namespace MvcBootEx.Grid
 {
-    internal class PreComputedTableDataSource : IWebTableDataSource
+    internal class PreComputedTableDataSource<T> : IWebTableDataSource<T>
     {
         private readonly int _totalRows;
-        private readonly IList<WebTableRow> _rows;
+        private readonly IList<WebTableRow<T>> _rows;
 
-        public int TotalRowCount
+        public long TotalRowCount
         {
-            get { return this._totalRows; }
+            get { return _totalRows; }
         }
 
-        public PreComputedTableDataSource(WebTable grid, IEnumerable<object> values, int totalRows)
+        public PreComputedTableDataSource(WebTable<T> grid, IEnumerable<T> values, int totalRows)
         {
-            this._totalRows = totalRows;
-            this._rows = new List<WebTableRow>();
+            _totalRows = totalRows;
+            _rows = new List<WebTableRow<T>>();
             int i = 0;
             foreach (var value in values)
             {
-                this._rows.Add(new WebTableRow(grid, value, i));
+                _rows.Add(new WebTableRow<T>(grid, (T)value, i));
                 i++;
             }
-//            this._rows = values.Select((Func<object, int, WebGridRow>) ((value, index) =>
-//            {
-//                // ISSUE: reference to a compiler-generated field
-//                if (PreComputedTableDataSource.ctor\u003Eo__SiteContainer0.\u003C\u003Ep__Site1 == null)
-//                {
-//                    // ISSUE: reference to a compiler-generated field
-//                    PreComputedTableDataSource.ctor\u003Eo__SiteContainer0.\u003C\u003Ep__Site1 =
-//                        CallSite<Func<CallSite, Type, WebGrid, object, int, WebGridRow>>.Create(
-//                            Binder.InvokeConstructor(CSharpBinderFlags.None, typeof (PreComputedTableDataSource),
-//                                (IEnumerable<CSharpArgumentInfo>) new CSharpArgumentInfo[4]
-//                                {
-//                                    CSharpArgumentInfo.Create(
-//                                        CSharpArgumentInfoFlags.UseCompileTimeType |
-//                                        CSharpArgumentInfoFlags.IsStaticType, (string) null),
-//                                    CSharpArgumentInfo.Create(CSharpArgumentInfoFlags.UseCompileTimeType, (string) null),
-//                                    CSharpArgumentInfo.Create(CSharpArgumentInfoFlags.NamedArgument, "value"),
-//                                    CSharpArgumentInfo.Create(
-//                                        CSharpArgumentInfoFlags.UseCompileTimeType |
-//                                        CSharpArgumentInfoFlags.NamedArgument, "rowIndex")
-//                                }));
-//                }
-//                // ISSUE: reference to a compiler-generated field
-//                // ISSUE: reference to a compiler-generated field
-//                return
-//                    PreComputedTableDataSource.ctor\u003Eo__SiteContainer0.\u003C\u003Ep__Site1.Target(
-//                        (CallSite) PreComputedTableDataSource.ctor\u003Eo__SiteContainer0.\u003C\u003Ep__Site1,
-//                        typeof (WebGridRow), grid, value, index);
-//            })).ToList();
         }
 
-        public IList<WebTableRow> GetRows(SortInfo sortInfo, int pageIndex)
+        public IList<WebTableRow<T>> GetRows(SortInfo sortInfo, int pageIndex)
         {
-            return this._rows;
+            return _rows;
         }
     }
 }

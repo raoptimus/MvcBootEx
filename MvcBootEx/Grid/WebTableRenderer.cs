@@ -10,9 +10,9 @@ using System.Web.WebPages;
 
 namespace MvcBootEx.Grid
 {
-    public class WebTableRenderer : HelperPage
+    public class WebTableRenderer<T> : HelperPage
     {
-        private static HelperResult GridInitScript(WebTable webGrid, HttpContextBase httpContext)
+        private static HelperResult GridInitScript(WebTable<T> webGrid, HttpContextBase httpContext)
         {
             return new HelperResult(razorHelperWriter =>
             {
@@ -20,39 +20,42 @@ namespace MvcBootEx.Grid
                 {
                     return;
                 }
-                if (!IsGridScriptRendered(httpContext))
-                {
-                    SetGridScriptRendered(httpContext, true);
 
-                    WriteLiteralTo(razorHelperWriter,
-                        "        <script type=\"text/javascript\">\r\n        (function($) {\r\n            $.fn" +
-                        ".swhgLoad = function(url, containerId, callback) {\r\n                url = url + " +
-                        "(url.indexOf(\'?\') == -1 ? \'?\' : \'&\') + \'__swhg=\' + new Date().getTime();\r\n\r\n    " +
-                        "            $(\'<div/>\').load(url + \' \' + containerId, function(data, status, xhr" +
-                        ") {\r\n                    $(containerId).replaceWith($(this).html());\r\n          " +
-                        "          if (typeof(callback) === \'function\') {\r\n                        callba" +
-                        "ck.apply(this, arguments);\r\n                    }\r\n                });\r\n        " +
-                        "        return this;\r\n            }\r\n\r\n            $(function() {\r\n             " +
-                        "   $(\'table[data-swhgajax=\"true\"],span[data-swhgajax=\"true\"]\').each(function() {" +
-                        "\r\n                    var self = $(this);\r\n                    var containerId =" +
-                        " \'#\' + self.data(\'swhgcontainer\');\r\n                    var callback = getFuncti" +
-                        "on(self.data(\'swhgcallback\'));\r\n\r\n                    $(containerId).parent().de" +
-                        "legate(containerId + \' a[data-swhglnk=\"true\"]\', \'click\', function() {\r\n         " +
-                        "               $(containerId).swhgLoad($(this).attr(\'href\'), containerId, callba" +
-                        "ck);\r\n                        return false;\r\n                    });\r\n          " +
-                        "      })\r\n            });\r\n\r\n            function getFunction(code, argNames) {\r" +
-                        "\n                argNames = argNames || [];\r\n                var fn = window, pa" +
-                        "rts = (code || \"\").split(\".\");\r\n                while (fn && parts.length) {\r\n  " +
-                        "                  fn = fn[parts.shift()];\r\n                }\r\n                if" +
-                        " (typeof (fn) === \"function\") {\r\n                    return fn;\r\n               " +
-                        " }\r\n                argNames.push(code);\r\n                return Function.constr" +
-                        "uctor.apply(null, argNames);\r\n            }\r\n        })(jQuery);\r\n        </scri" +
-                        "pt>\r\n");
+                if (IsGridScriptRendered(httpContext))
+                {
+                    return;
                 }
+
+                SetGridScriptRendered(httpContext, true);
+
+                WriteLiteralTo(razorHelperWriter,
+                    "        <script type=\"text/javascript\">\r\n        (function($) {\r\n            $.fn" +
+                    ".swhgLoad = function(url, containerId, callback) {\r\n                url = url + " +
+                    "(url.indexOf(\'?\') == -1 ? \'?\' : \'&\') + \'__swhg=\' + new Date().getTime();\r\n\r\n    " +
+                    "            $(\'<div/>\').load(url + \' \' + containerId, function(data, status, xhr" +
+                    ") {\r\n                    $(containerId).replaceWith($(this).html());\r\n          " +
+                    "          if (typeof(callback) === \'function\') {\r\n                        callba" +
+                    "ck.apply(this, arguments);\r\n                    }\r\n                });\r\n        " +
+                    "        return this;\r\n            }\r\n\r\n            $(function() {\r\n             " +
+                    "   $(\'table[data-swhgajax=\"true\"],span[data-swhgajax=\"true\"]\').each(function() {" +
+                    "\r\n                    var self = $(this);\r\n                    var containerId =" +
+                    " \'#\' + self.data(\'swhgcontainer\');\r\n                    var callback = getFuncti" +
+                    "on(self.data(\'swhgcallback\'));\r\n\r\n                    $(containerId).parent().de" +
+                    "legate(containerId + \' a[data-swhglnk=\"true\"]\', \'click\', function() {\r\n         " +
+                    "               $(containerId).swhgLoad($(this).attr(\'href\'), containerId, callba" +
+                    "ck);\r\n                        return false;\r\n                    });\r\n          " +
+                    "      })\r\n            });\r\n\r\n            function getFunction(code, argNames) {\r" +
+                    "\n                argNames = argNames || [];\r\n                var fn = window, pa" +
+                    "rts = (code || \"\").split(\".\");\r\n                while (fn && parts.length) {\r\n  " +
+                    "                  fn = fn[parts.shift()];\r\n                }\r\n                if" +
+                    " (typeof (fn) === \"function\") {\r\n                    return fn;\r\n               " +
+                    " }\r\n                argNames.push(code);\r\n                return Function.constr" +
+                    "uctor.apply(null, argNames);\r\n            }\r\n        })(jQuery);\r\n        </scri" +
+                    "pt>\r\n");
             });
         }
 
-        public static HelperResult Table(WebTable webGrid,
+        public static HelperResult Table(WebTable<T> webGrid,
             HttpContextBase httpContext,
             string tableStyle,
             string headerStyle,
@@ -64,9 +67,9 @@ namespace MvcBootEx.Grid
             bool displayHeader,
             bool fillEmptyRows,
             string emptyRowCellValue,
-            IEnumerable<WebGridColumn> columns,
+            IEnumerable<WebTableColumn<T>> columns,
             IEnumerable<string> exclusions,
-            Func<dynamic, object> footer,
+            Func<object, IHtmlString> footer,
             object htmlAttributes)
         {
             return new HelperResult(razorHelperWriter =>
@@ -88,32 +91,26 @@ namespace MvcBootEx.Grid
                 }
 
                 WriteLiteralTo(razorHelperWriter, "    <table");
-
-                WriteTo(razorHelperWriter,
-                    tableStyle.IsEmpty() ? null : Raw(" class=\"" + HttpUtility.HtmlAttributeEncode(tableStyle) + "\""));
-
+                WriteTo(razorHelperWriter, tableStyle.IsEmpty() ? null : Raw(" class=\"" + HttpUtility.HtmlAttributeEncode(tableStyle) + "\""));
                 WriteTo(razorHelperWriter, PrintAttributes(htmlAttributeDictionary));
-
                 WriteLiteralTo(razorHelperWriter, ">\r\n");
 
                 if (!caption.IsEmpty())
                 {
                     WriteLiteralTo(razorHelperWriter, "        <caption>");
-
                     WriteTo(razorHelperWriter, caption);
-
                     WriteLiteralTo(razorHelperWriter, "</caption>\r\n");
                 }
+
+                var webTableColumns = columns as IList<WebTableColumn<T>> ?? columns.ToList();
 
                 if (displayHeader)
                 {
                     WriteLiteralTo(razorHelperWriter, "    <thead>\r\n        <tr");
-
                     WriteTo(razorHelperWriter, CssClass(headerStyle));
-
                     WriteLiteralTo(razorHelperWriter, ">\r\n");
 
-                    foreach (var column in columns)
+                    foreach (var column in webTableColumns)
                     {
                         WriteLiteralTo(razorHelperWriter, "            <th scope=\"col\">\r\n");
 
@@ -138,17 +135,11 @@ namespace MvcBootEx.Grid
                 if (footer != null)
                 {
                     WriteLiteralTo(razorHelperWriter, "    <tfoot>\r\n        <tr ");
-
                     WriteTo(razorHelperWriter, CssClass(footerStyle));
-
                     WriteLiteralTo(razorHelperWriter, ">\r\n            <td colspan=\"");
-
-                    WriteTo(razorHelperWriter, columns.Count());
-
+                    WriteTo(razorHelperWriter, webTableColumns.Count());
                     WriteLiteralTo(razorHelperWriter, "\">");
-
-                    WriteTo(razorHelperWriter, Format(footer, null));
-
+                    WriteTo(razorHelperWriter, Format(footer));
                     WriteLiteralTo(razorHelperWriter, "</td>\r\n        </tr>\r\n    </tfoot>\r\n");
                 }
 
@@ -159,27 +150,20 @@ namespace MvcBootEx.Grid
                 foreach (var row in webGrid.Rows)
                 {
                     string style = GetRowStyle(webGrid, rowIndex++, rowStyle, alternatingRowStyle, selectedRowStyle);
-
                     WriteLiteralTo(razorHelperWriter, "        <tr");
-
                     WriteTo(razorHelperWriter, CssClass(style));
-
                     WriteLiteralTo(razorHelperWriter, ">\r\n");
 
-                    foreach (var column in columns)
+                    foreach (var column in webTableColumns)
                     {
                         var value = (column.Format == null)
                             ? HttpUtility.HtmlEncode(row[column.ColumnName])
-                            : Format(column.Format, row).ToString();
+                            : Format(column.Format, row.Value).ToString();
 
                         WriteLiteralTo(razorHelperWriter, "            <td");
-
                         WriteTo(razorHelperWriter, CssClass(column.Style));
-
                         WriteLiteralTo(razorHelperWriter, ">");
-
                         WriteTo(razorHelperWriter, Raw(value));
-
                         WriteLiteralTo(razorHelperWriter, "</td>\r\n");
                     }
 
@@ -194,21 +178,15 @@ namespace MvcBootEx.Grid
                         string style = GetRowStyle(webGrid, rowIndex++, rowStyle, alternatingRowStyle, null);
 
                         WriteLiteralTo(razorHelperWriter, "            <tr");
-
                         WriteTo(razorHelperWriter, CssClass(style));
-
                         WriteLiteralTo(razorHelperWriter, ">\r\n");
 
-                        foreach (var column in columns)
+                        foreach (var column in webTableColumns)
                         {
                             WriteLiteralTo(razorHelperWriter, "                    <td");
-
                             WriteTo(razorHelperWriter, CssClass(column.Style));
-
                             WriteLiteralTo(razorHelperWriter, ">");
-
                             WriteTo(razorHelperWriter, Raw(emptyRowCellValue));
-
                             WriteLiteralTo(razorHelperWriter, "</td>\r\n");
                         }
 
@@ -221,7 +199,7 @@ namespace MvcBootEx.Grid
         }
 
         public static HelperResult Pager(
-            WebTable webGrid,
+            WebTable<T> webGrid,
             HttpContextBase httpContext,
             WebGridPagerModes mode,
             string firstText,
@@ -249,15 +227,10 @@ namespace MvcBootEx.Grid
                 if (renderAjaxContainer && webGrid.IsAjaxEnabled)
                 {
                     WriteLiteralTo(razorHelperWriter, "        ");
-
                     WriteLiteralTo(razorHelperWriter, "<span data-swhgajax=\"true\" data-swhgcontainer=\"");
-
                     WriteTo(razorHelperWriter, webGrid.AjaxUpdateContainerId);
-
                     WriteLiteralTo(razorHelperWriter, "\" data-swhgcallback=\"");
-
                     WriteTo(razorHelperWriter, webGrid.AjaxUpdateCallback);
-
                     WriteLiteralTo(razorHelperWriter, "\">\r\n");
                 }
 
@@ -268,9 +241,7 @@ namespace MvcBootEx.Grid
                         firstText = "<<";
                     }
 
-                    WriteTo(razorHelperWriter,
-                        GridLiLink(webGrid, webGrid.GetPageUrl(0), firstText, currentPage == 0));
-
+                    WriteTo(razorHelperWriter, GridLiLink(webGrid, webGrid.GetPageUrl(0), firstText, currentPage == 0));
                     WriteTo(razorHelperWriter, Raw(" "));
                 }
 
@@ -281,9 +252,7 @@ namespace MvcBootEx.Grid
                         previousText = "<";
                     }
 
-                    WriteTo(razorHelperWriter,
-                        GridLiLink(webGrid, webGrid.GetPageUrl(currentPage - 1), previousText, currentPage == 0));
-
+                    WriteTo(razorHelperWriter, GridLiLink(webGrid, webGrid.GetPageUrl(currentPage - 1), previousText, currentPage == 0));
                     WriteTo(razorHelperWriter, Raw(" "));
                 }
 
@@ -291,22 +260,23 @@ namespace MvcBootEx.Grid
                 {
                     int last = currentPage + (numericLinksCount/2);
                     int first = last - numericLinksCount + 1;
+                    
                     if (last > lastPage)
                     {
                         first -= last - lastPage;
                         last = lastPage;
                     }
+
                     if (first < 0)
                     {
                         last = Math.Min(last + (0 - first), lastPage);
                         first = 0;
                     }
+
                     for (int i = first; i <= last; i++)
                     {
                         var pageText = (i + 1).ToString(CultureInfo.InvariantCulture);
-                        WriteTo(razorHelperWriter,
-                                     GridLiLink(webGrid, webGrid.GetPageUrl(i), pageText, i == currentPage));
-
+                        WriteTo(razorHelperWriter, GridLiLink(webGrid, webGrid.GetPageUrl(i), pageText, i == currentPage));
                         WriteTo(razorHelperWriter, Raw(" "));
                     }
                 }
@@ -318,9 +288,7 @@ namespace MvcBootEx.Grid
                         nextText = ">";
                     }
 
-                    WriteTo(razorHelperWriter,
-                        GridLiLink(webGrid, webGrid.GetPageUrl(currentPage + 1), nextText, currentPage == lastPage));
-
+                    WriteTo(razorHelperWriter, GridLiLink(webGrid, webGrid.GetPageUrl(currentPage + 1), nextText, currentPage == lastPage));
                     WriteTo(razorHelperWriter, Raw(" "));
                 }
 
@@ -331,14 +299,12 @@ namespace MvcBootEx.Grid
                         lastText = ">>";
                     }
 
-                    WriteTo(razorHelperWriter,
-                        GridLiLink(webGrid, webGrid.GetPageUrl(lastPage), lastText, currentPage == lastPage));
+                    WriteTo(razorHelperWriter, GridLiLink(webGrid, webGrid.GetPageUrl(lastPage), lastText, currentPage == lastPage));
                 }
 
                 if (renderAjaxContainer && webGrid.IsAjaxEnabled)
                 {
                     WriteLiteralTo(razorHelperWriter, "        ");
-
                     WriteLiteralTo(razorHelperWriter, "</span>\r\n");
                 }
 
@@ -360,29 +326,36 @@ namespace MvcBootEx.Grid
             context.Items[_gridScriptRenderedKey] = value;
         }
 
-        private static bool ShowSortableColumnHeader(WebTable grid, WebGridColumn column)
+        private static bool ShowSortableColumnHeader(WebTable<T> grid, WebTableColumn<T> column)
         {
             return grid.CanSort && column.CanSort && !column.ColumnName.IsEmpty();
         }
 
-        public static IHtmlString GridLiLink(WebTable webGrid, string url, string text, bool disabled = false)
+        public static IHtmlString GridLiLink(WebTable<T> webGrid, string url, string text, bool disabled = false)
         {
-            var li = new TagBuilder("li") {InnerHtml = GridLink(webGrid, url, text).ToHtmlString()};
+            var li = new TagBuilder("li")
+            {
+                InnerHtml = GridLink(webGrid, url, text).ToHtmlString()
+            };
+
             if (disabled)
             {
                 li.MergeAttribute("class", "disabled");
             }
+
             return MvcHtmlString.Create(li.ToString(TagRenderMode.Normal));
         }
-        public static IHtmlString GridLink(WebTable webGrid, string url, string text)
+        public static IHtmlString GridLink(WebTable<T> webGrid, string url, string text)
         {
             var builder = new TagBuilder("a");
             builder.SetInnerText(text);
             builder.MergeAttribute("href", url);
+
             if (webGrid.IsAjaxEnabled)
             {
                 builder.MergeAttribute("data-swhglnk", "true");
             }
+
             return MvcHtmlString.Create(builder.ToString(TagRenderMode.Normal));
         }
 
@@ -391,7 +364,7 @@ namespace MvcBootEx.Grid
             return new HtmlString(text);
         }
 
-        private static IHtmlString RawJS(string text)
+        private static IHtmlString RawJs(string text)
         {
             return new HtmlString(HttpUtility.JavaScriptStringEncode(text));
         }
@@ -404,7 +377,7 @@ namespace MvcBootEx.Grid
                     : String.Empty);
         }
 
-        private static string GetRowStyle(WebTable webGrid, int rowIndex, string rowStyle, string alternatingRowStyle,
+        private static string GetRowStyle(WebTable<T> webGrid, int rowIndex, string rowStyle, string alternatingRowStyle,
             string selectedRowStyle)
         {
             var style = new StringBuilder();
@@ -424,18 +397,43 @@ namespace MvcBootEx.Grid
                 }
             }
 
-            if (!String.IsNullOrEmpty(selectedRowStyle) && (rowIndex == webGrid.SelectedIndex))
+            if (String.IsNullOrEmpty(selectedRowStyle) || (rowIndex != webGrid.SelectedIndex))
             {
-                if (style.Length > 0)
-                {
-                    style.Append(" ");
-                }
-                style.Append(selectedRowStyle);
+                return style.ToString();
             }
+
+            if (style.Length > 0)
+            {
+                style.Append(" ");
+            }
+            style.Append(selectedRowStyle);
             return style.ToString();
         }
 
-        private static HelperResult Format(Func<dynamic, object> format, dynamic arg)
+        private static HelperResult Format(Func<object, object> format)
+        {
+            var result = format(null);
+            return new HelperResult(tw =>
+            {
+                var helper = result as HelperResult;
+                if (helper != null)
+                {
+                    helper.WriteTo(tw);
+                    return;
+                }
+
+                var obj = result as IHtmlString;
+                if (obj != null)
+                {
+                    tw.Write(obj);
+                    return;
+                }
+
+                tw.Write(HttpUtility.HtmlEncode(result));
+            });
+        }
+
+        private static HelperResult Format(Func<T, object> format, T arg)
         {
             var result = format(arg);
             return new HelperResult(tw =>
@@ -447,21 +445,18 @@ namespace MvcBootEx.Grid
                     return;
                 }
 
-                var htmlString = result as IHtmlString;
-
-                if (htmlString != null)
+                var obj = result as IHtmlString;
+                if (obj != null)
                 {
-                    tw.Write(htmlString);
+                    tw.Write(obj);
                     return;
                 }
-                if (result != null)
-                {
-                    tw.Write(HttpUtility.HtmlEncode(result));
-                }
+
+                tw.Write(HttpUtility.HtmlEncode(result));
             });
         }
 
-        private static IHtmlString PrintAttributes(IDictionary<string, object> attributes)
+        private static IHtmlString PrintAttributes(IEnumerable<KeyValuePair<string, object>> attributes)
         {
             var builder = new StringBuilder();
 
@@ -474,6 +469,7 @@ namespace MvcBootEx.Grid
                     .Append(HttpUtility.HtmlAttributeEncode(value))
                     .Append('"');
             }
+
             return new HtmlString(builder.ToString());
         }
 

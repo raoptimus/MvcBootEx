@@ -1,11 +1,12 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 
 namespace MvcBootEx.Grid
 {
-    public static class TableEx
+    public static class WebTableEx
     {
-        public static Table<T> Grid<T>(this BootEx bootEx,
-            IEnumerable<T> source = null,
+        public static WebTable<T> Grid<T>(this BootEx bootEx,
+            IQueryable<T> source = null,
             IEnumerable<string> columnNames = null,
             string defaultSort = null,
             int rowsPerPage = 10,
@@ -25,7 +26,7 @@ namespace MvcBootEx.Grid
             bool condensed = true
             )
         {
-            return new Table<T>(source, columnNames, defaultSort, rowsPerPage, canPage, canSort,
+            return new WebTable<T>(source, columnNames, defaultSort, rowsPerPage, canPage, canSort,
                 ajaxUpdateContainerId, ajaxUpdateCallback, fieldNamePrefix, pageFieldName, selectionFieldName,
                 sortFieldName, sortDirectionFieldName, striped, bordered, hovered, responsive, condensed);
         }

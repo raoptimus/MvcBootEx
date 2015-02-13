@@ -12,9 +12,15 @@ using System.Web.WebPages;
 
 namespace MvcBootEx.Grid
 {
-    public class WebTable
+    public class WebTable<T>
     {
-        private const string AjaxUpdateScript = "$({1}).swhgLoad({0},{1}{2});";
+        public bool Striped { get; private set; } //= true;// C# 6 or higher
+        public bool Bordered { get; private set; }
+        public bool Hovered { get; private set; }
+        public bool Responsive { get; private set; }
+        public bool Condensed { get; private set; }
+
+        private const string AJAX_UPDATE_SCRIPT = "$({1}).swhgLoad({0},{1}{2});";
         private readonly HttpContextBase _context;
         private readonly bool _canPage;
         private readonly bool _canSort;
@@ -28,7 +34,6 @@ namespace MvcBootEx.Grid
         private readonly string _fieldNamePrefix;
         private int _pageIndex = -1;
         private bool _pageIndexSet;
-        private int _rowsPerPage;
         private int _selectedIndex = -1;
         private bool _selectedIndexSet;
         private string _sortColumn;
@@ -36,12 +41,12 @@ namespace MvcBootEx.Grid
         private bool _sortColumnExplicitlySet;
         private SortDirection _sortDirection;
         private bool _sortDirectionSet;
-        private IWebTableDataSource _dataSource;
+        private IWebTableDataSource<T> _dataSource;
         private bool _dataSourceBound;
         private bool _dataSourceMaterialized;
         private IEnumerable<string> _columnNames;
         private Type _elementType;
-        private IList<WebTableRow> _rows;
+        private IList<WebTableRow<T>> _rows;
 
         /// <param name="source">Data source</param>
         /// <param name="columnNames">Data source column names. Auto-populated by default.</param>
@@ -56,8 +61,13 @@ namespace MvcBootEx.Grid
         /// <param name="selectionFieldName">Query string field name for selected row number.</param>
         /// <param name="sortFieldName">Query string field name for sort column.</param>
         /// <param name="sortDirectionFieldName">Query string field name for sort direction.</param>
+        /// <param name="striped"></param>
+        /// <param name="bordered"></param>
+        /// <param name="hovered"></param>
+        /// <param name="responsive"></param>
+        /// <param name="condensed"></param>
         public WebTable(
-            IEnumerable<dynamic> source = null,
+            IQueryable<T> source = null,
             IEnumerable<string> columnNames = null,
             string defaultSort = null,
             int rowsPerPage = 10,
@@ -69,11 +79,27 @@ namespace MvcBootEx.Grid
             string pageFieldName = null,
             string selectionFieldName = null,
             string sortFieldName = null,
-            string sortDirectionFieldName = null)
-            : this(new HttpContextWrapper(System.Web.HttpContext.Current), defaultSort: defaultSort, rowsPerPage: rowsPerPage, canPage: canPage,
-                   canSort: canSort, ajaxUpdateContainerId: ajaxUpdateContainerId, ajaxUpdateCallback: ajaxUpdateCallback, fieldNamePrefix: fieldNamePrefix, pageFieldName: pageFieldName,
-                   selectionFieldName: selectionFieldName, sortFieldName: sortFieldName, sortDirectionFieldName: sortDirectionFieldName)
+            string sortDirectionFieldName = null,
+            bool striped = true,
+            bool bordered = false,
+            bool hovered = true,
+            bool responsive = true,
+            bool condensed = true
+            )
+            : this(
+                new HttpContextWrapper(System.Web.HttpContext.Current), defaultSort: defaultSort,
+                rowsPerPage: rowsPerPage, canPage: canPage,
+                canSort: canSort, ajaxUpdateContainerId: ajaxUpdateContainerId, ajaxUpdateCallback: ajaxUpdateCallback,
+                fieldNamePrefix: fieldNamePrefix, pageFieldName: pageFieldName,
+                selectionFieldName: selectionFieldName, sortFieldName: sortFieldName,
+                sortDirectionFieldName: sortDirectionFieldName)
         {
+            Striped = striped;
+            Bordered = bordered;
+            Hovered = hovered;
+            Responsive = responsive;
+            Condensed = condensed;
+
             if (source != null)
             {
                 Bind(source, columnNames);
@@ -103,7 +129,7 @@ namespace MvcBootEx.Grid
 
             _context = context;
             _defaultSort = defaultSort;
-            _rowsPerPage = rowsPerPage;
+            RowsPerPage = rowsPerPage;
             _canPage = canPage;
             _canSort = canSort;
             _ajaxUpdateContainerId = ajaxUpdateContainerId;
@@ -238,37 +264,35 @@ namespace MvcBootEx.Grid
                     {
                         throw new ArgumentOutOfRangeException("value", String.Format(CultureInfo.CurrentCulture, "Argument Must Be Between {0}, {1}", 0, (PageCount - 1)));
                     }
-                    if (value != _pageIndex)
-                    {
-                        EnsureDataSourceNotMaterialized();
-                        _pageIndex = value;
-                        _pageIndexSet = true;
-                    }
+
+                    if (value == _pageIndex) 
+                        return;
+                    
+                    EnsureDataSourceNotMaterialized();
+                    _pageIndex = value;
+                    _pageIndexSet = true;
                 }
             }
         }
 
-        public IList<WebTableRow> Rows
+        public IList<WebTableRow<T>> Rows
         {
             get
             {
                 EnsureDataBound();
 
-                if (!_dataSourceMaterialized)
-                {
-                    _rows = _dataSource.GetRows(SortInfo, PageIndex);
-                    _dataSourceMaterialized = true;
-                }
+                if (_dataSourceMaterialized) 
+                    return _rows;
+
+                _rows = _dataSource.GetRows(SortInfo, PageIndex);
+                _dataSourceMaterialized = true;
                 return _rows;
             }
         }
 
-        public int RowsPerPage
-        {
-            get { return _rowsPerPage; }
-        }
+        public int RowsPerPage { get; private set; }
 
-        public WebTableRow SelectedRow
+        public WebTableRow<T> SelectedRow
         {
             get
             {
@@ -284,21 +308,22 @@ namespace MvcBootEx.Grid
         {
             get
             {
-                if (!_selectedIndexSet)
+                if (_selectedIndexSet) 
+                    return _selectedIndex;
+
+                int row;
+                // Range checking should not use Rows.Count since this will cause paging and sorting.
+                // Review: side effect is that HasSelection will return true if Rows.Count (current page's
+                // row count) is less than both SelectedIndex and RowsPerPage. This scenario should only
+                // happen if someone manually modifies the query string.
+                // If paging isn't enabled, this getter isn't doing a upper bounds check on the value.
+                if ((!Int32.TryParse(QueryString[SelectionFieldName], out row)) || (row < 1) || (_canPage && (row > RowsPerPage)))
                 {
-                    int row;
-                    // Range checking should not use Rows.Count since this will cause paging and sorting.
-                    // Review: side effect is that HasSelection will return true if Rows.Count (current page's
-                    // row count) is less than both SelectedIndex and RowsPerPage. This scenario should only
-                    // happen if someone manually modifies the query string.
-                    // If paging isn't enabled, this getter isn't doing a upper bounds check on the value.
-                    if ((!Int32.TryParse(QueryString[SelectionFieldName], out row)) || (row < 1) || (_canPage && (row > RowsPerPage)))
-                    {
-                        row = 0;
-                    }
-                    _selectedIndex = row - 1;
-                    _selectedIndexSet = true;
+                    row = 0;
                 }
+
+                _selectedIndex = row - 1;
+                _selectedIndexSet = true;
                 return _selectedIndex;
             }
             set
@@ -398,7 +423,7 @@ namespace MvcBootEx.Grid
             get { return FieldNamePrefix + _sortFieldName; }
         }
 
-        public int TotalRowCount
+        public long TotalRowCount
         {
             get
             {
@@ -417,7 +442,7 @@ namespace MvcBootEx.Grid
             get { return HttpContext.Request.QueryString; }
         }
 
-        private static Type GetElementType(IEnumerable<dynamic> source)
+        private static Type GetElementType(IQueryable<T> source)
         {
             Type sourceType = source.GetType();
 
@@ -436,7 +461,7 @@ namespace MvcBootEx.Grid
 
         private static Type GetGenericEnumerableType(Type type)
         {
-            Type enumerableType = typeof(IEnumerable<>);
+            Type enumerableType = typeof(IQueryable<>);
             if (type.IsGenericType && enumerableType.IsAssignableFrom(type.GetGenericTypeDefinition()))
             {
                 return type.GetGenericArguments()[0];
@@ -444,11 +469,11 @@ namespace MvcBootEx.Grid
             return null;
         }
 
-        public WebTable Bind(IEnumerable<dynamic> source, IEnumerable<string> columnNames = null, bool autoSortAndPage = true, int rowCount = -1)
+        public WebTable<T> Bind(IQueryable<T> source, IEnumerable<string> columnNames = null, bool autoSortAndPage = true, int rowCount = -1)
         {
             if (_dataSourceBound)
             {
-                throw new InvalidOperationException("WebGrid_DataSourceBound");
+                throw new InvalidOperationException("WebGrid DataSourceBound");
             }
             if (source == null)
             {
@@ -456,7 +481,7 @@ namespace MvcBootEx.Grid
             }
             if (!autoSortAndPage && _canPage && rowCount == -1)
             {
-                throw new ArgumentException("WebGrid_RowCountNotSpecified", "rowCount");
+                throw new ArgumentException(@"WebGrid RowCount not specified", "rowCount");
             }
 
             _elementType = GetElementType(source);
@@ -467,14 +492,14 @@ namespace MvcBootEx.Grid
 
             if (!autoSortAndPage)
             {
-                _dataSource = new PreComputedTableDataSource(grid: this, values: source, totalRows: rowCount);
+                _dataSource = new PreComputedTableDataSource<T>(grid: this, values: source, totalRows: rowCount);
             }
             else
             {
-                var dataSource = new WebTableDataSource(grid: this, values: source, elementType: _elementType, canPage: _canPage, canSort: _canSort)
+                var dataSource = new WebTableDataSource<T>(grid: this, values: source, elementType: _elementType, canPage: _canPage, canSort: _canSort)
                 {
                     DefaultSort = new SortInfo {SortColumn = _defaultSort, SortDirection = SortDirection.Ascending},
-                    RowsPerPage = _rowsPerPage
+                    RowsPerPage = RowsPerPage
                 };
                 _dataSource = dataSource;
             }
@@ -483,18 +508,18 @@ namespace MvcBootEx.Grid
             return this;
         }
 
-         public WebGridColumn Column(string columnName = null, string header = null, Func<dynamic, object> format = null, string style = null,
+         public WebTableColumn<T> Column(string columnName = null, string header = null, Func<T, object> format = null, string style = null,
                                     bool canSort = true)
         {
             if (String.IsNullOrEmpty(columnName))
             {
                 if (format == null)
                 {
-                    throw new ArgumentException("ColumnNameOrFormatRequired", "columnName");
+                    throw new ArgumentException(@"Column name or format required", "columnName");
                 }
             }
 
-            return new WebGridColumn { ColumnName = columnName, Header = header, Format = format, Style = style, CanSort = canSort };
+            return new WebTableColumn<T> { ColumnName = columnName, Header = header, Format = format, Style = style, CanSort = canSort };
         }
 
         // Should we keep this no-op API for improved WebGrid syntax? Alternatives are:
@@ -504,14 +529,14 @@ namespace MvcBootEx.Grid
         // 2. columns: new[] {
         //        grid.Column(...), grid.Column(...)
         //    }
-        public WebGridColumn[] Columns(params WebGridColumn[] columnSet)
+        public WebTableColumn<T>[] Columns(params WebTableColumn<T>[] columnSet)
         {
             return columnSet;
         }
 
         public IHtmlString GetContainerUpdateScript(string path)
         {
-            var script = String.Format(CultureInfo.InvariantCulture, AjaxUpdateScript,
+            var script = String.Format(CultureInfo.InvariantCulture, AJAX_UPDATE_SCRIPT,
                                        HttpUtility.JavaScriptStringEncode(path, addDoubleQuotes: true),
                                        HttpUtility.JavaScriptStringEncode('#' + AjaxUpdateContainerId, addDoubleQuotes: true),
                                        !String.IsNullOrEmpty(AjaxUpdateCallback) ? ',' + HttpUtility.JavaScriptStringEncode(AjaxUpdateCallback) : String.Empty);
@@ -552,7 +577,7 @@ namespace MvcBootEx.Grid
             bool displayHeader = true,
             bool fillEmptyRows = false,
             string emptyRowCellValue = null,
-            IEnumerable<WebGridColumn> columns = null,
+            IEnumerable<WebTableColumn<T>> columns = null,
             IEnumerable<string> exclusions = null,
             WebGridPagerModes mode = WebGridPagerModes.NextPrevious | WebGridPagerModes.Numeric,
             string firstText = null,
@@ -562,7 +587,37 @@ namespace MvcBootEx.Grid
             int numericLinksCount = 5,
             object htmlAttributes = null)
         {
-            Func<dynamic, object> footer = null;
+            var tableStyles = new HashSet<string>((tableStyle ?? "").Split(' ')) { "table" };
+
+            if (Striped)
+            {
+                tableStyles.Add("table-striped");
+            }
+
+            if (Bordered)
+            {
+                tableStyles.Add("table-bordered");
+            }
+
+            if (Hovered)
+            {
+                tableStyles.Add("table-hover");
+            }
+
+            if (Condensed)
+            {
+                tableStyles.Add("table-condensed");
+            }
+
+            if (Responsive)
+            {
+                tableStyles.Add("table-responsive");
+            }
+
+            tableStyle = String.Join(" ", tableStyles);
+
+            Func<object, IHtmlString> footer = null;
+
             if (_canPage && (PageCount > 1))
             {
                 footer = item => Pager(mode, firstText, previousText, nextText, lastText, numericLinksCount, explicitlyCalled: false);
@@ -577,12 +632,12 @@ namespace MvcBootEx.Grid
         {
             if (!_canPage)
             {
-                throw new NotSupportedException("Not Supported If Paging IsDisabled");
+                throw new NotSupportedException("Not supported if paging is disabled");
             }
             if ((pageIndex < 0) || (pageIndex >= PageCount))
             {
                 throw new ArgumentOutOfRangeException("pageIndex", String.Format(CultureInfo.CurrentCulture,
-                                                                                 "Argument Must Be Between {0}, {1}", 0, (PageCount - 1)));
+                                                                                 "Argument must be between {0}, {1}", 0, (PageCount - 1)));
             }
 
             var queryString = new NameValueCollection(1);
@@ -594,11 +649,11 @@ namespace MvcBootEx.Grid
         {
             if (!_canSort)
             {
-                throw new NotSupportedException("Not Supported If Sorting IsDisabled");
+                throw new NotSupportedException("Not supported if sorting is disabled");
             }
             if (String.IsNullOrEmpty(column))
             {
-                throw new ArgumentException("Argument Cannot Be Null Or Empty", "column");
+                throw new ArgumentException(@"Argument cannot be null or empty", "column");
             }
 
             var sort = SortColumn;
@@ -678,7 +733,7 @@ namespace MvcBootEx.Grid
             if (!ModeEnabled(mode, WebGridPagerModes.FirstLast) && (lastText != null))
             {
                 throw new ArgumentException(String.Format(CultureInfo.CurrentCulture,
-                                                          "WebGrid_PagerModeMustBeEnabled", "FirstLast"), "lastText");
+                                                          "WebGrid_PagerModeMustBeEnabled {0}", "FirstLast"), "lastText");
             }
             if (numericLinksCount < 0)
             {
@@ -686,7 +741,7 @@ namespace MvcBootEx.Grid
                                                       String.Format(CultureInfo.CurrentCulture, "Argument_Must_Be_GreaterThanOrEqualTo {0}", 0));
             }
 
-            return WebTableRenderer.Pager(this, HttpContext, mode: mode, firstText: firstText, previousText: previousText, nextText: nextText, lastText: lastText,
+            return WebTableRenderer<T>.Pager(this, HttpContext, mode: mode, firstText: firstText, previousText: previousText, nextText: nextText, lastText: lastText,
                                          numericLinksCount: numericLinksCount, renderAjaxContainer: explicitlyCalled);
         }
 
@@ -718,9 +773,9 @@ namespace MvcBootEx.Grid
             bool displayHeader = true,
             bool fillEmptyRows = false,
             string emptyRowCellValue = null,
-            IEnumerable<WebGridColumn> columns = null,
+            IEnumerable<WebTableColumn<T>> columns = null,
             IEnumerable<string> exclusions = null,
-            Func<dynamic, object> footer = null,
+            Func<object, IHtmlString> footer = null,
             object htmlAttributes = null)
         {
             if (columns == null)
@@ -740,13 +795,13 @@ namespace MvcBootEx.Grid
                 emptyRowCellValue = "&nbsp;";
             }
 
-            return WebTableRenderer.Table(this, HttpContext, tableStyle: tableStyle, headerStyle: headerStyle, footerStyle: footerStyle, rowStyle: rowStyle,
+            return WebTableRenderer<T>.Table(this, HttpContext, tableStyle: tableStyle, headerStyle: headerStyle, footerStyle: footerStyle, rowStyle: rowStyle,
                                          alternatingRowStyle: alternatingRowStyle, selectedRowStyle: selectedRowStyle, caption: caption, displayHeader: displayHeader, fillEmptyRows: fillEmptyRows,
                                          emptyRowCellValue: emptyRowCellValue, columns: columns, exclusions: exclusions, footer: footer, htmlAttributes: htmlAttributes);
         }
 
         /// <param name="columns">The set of columns that are rendered to the client.</param>
-        private void EnsureColumnIsSortable(IEnumerable<WebGridColumn> columns)
+        private void EnsureColumnIsSortable(IEnumerable<WebTableColumn<T>> columns)
         {
             // Fix for bug 941102
             // The ValidateSortColumn can validate a few regular cases for sorting and reset those values to default. However, for sort columns that are complex expressions,
@@ -759,7 +814,7 @@ namespace MvcBootEx.Grid
             }
         }
 
-        public static dynamic GetMember(WebTableRow row, string name)
+        public static dynamic GetMember(WebTableRow<T> row, string name)
         {
             object result;
             if (row.TryGetMember(name, out result))
@@ -877,7 +932,7 @@ namespace MvcBootEx.Grid
                    || value.Contains('.');
         }
 
-        private static IEnumerable<string> GetDefaultColumnNames(IEnumerable<dynamic> source, Type elementType)
+        private static IEnumerable<string> GetDefaultColumnNames(IEnumerable<T> source, Type elementType)
         {
             var dynObj = source.FirstOrDefault() as IDynamicMetaObjectProvider;
             if (dynObj != null)
@@ -890,7 +945,7 @@ namespace MvcBootEx.Grid
                 select p.Name).OrderBy(n => n, StringComparer.OrdinalIgnoreCase).ToArray();
         }
 
-        private IEnumerable<WebGridColumn> GetDefaultColumns(IEnumerable<string> exclusions)
+        private IEnumerable<WebTableColumn<T>> GetDefaultColumns(IEnumerable<string> exclusions)
         {
             IEnumerable<string> names = ColumnNames;
             if (exclusions != null)
@@ -898,7 +953,7 @@ namespace MvcBootEx.Grid
                 names = names.Except(exclusions);
             }
             return (from n in names
-                    select new WebGridColumn { ColumnName = n, CanSort = true }).ToArray();
+                    select new WebTableColumn<T> { ColumnName = n, CanSort = true }).ToArray();
         }
 
         // see: DataBoundControlHelper.IsBindableType
@@ -910,12 +965,12 @@ namespace MvcBootEx.Grid
                 type = underlyingType;
             }
             return (type.IsPrimitive ||
-                    type.Equals(typeof(string)) ||
-                    type.Equals(typeof(DateTime)) ||
-                    type.Equals(typeof(Decimal)) ||
-                    type.Equals(typeof(Guid)) ||
-                    type.Equals(typeof(DateTimeOffset)) ||
-                    type.Equals(typeof(TimeSpan)));
+                    type == typeof(string) ||
+                    type == typeof(DateTime) ||
+                    type == typeof(Decimal) ||
+                    type == typeof(Guid) ||
+                    type == typeof(DateTimeOffset) ||
+                    type == typeof(TimeSpan));
         }
 
         private static bool ModeEnabled(WebGridPagerModes mode, WebGridPagerModes modeCheck)

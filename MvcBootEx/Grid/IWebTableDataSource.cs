@@ -2,10 +2,10 @@
 
 namespace MvcBootEx.Grid
 {
-    internal interface IWebTableDataSource
+    internal interface IWebTableDataSource<T>
     {
-        int TotalRowCount { get; }
+        long TotalRowCount { get; }
 
-        IList<WebTableRow> GetRows(SortInfo sortInfo, int pageIndex);
+        IList<WebTableRow<T>> GetRows(SortInfo sortInfo, int pageIndex);
     }
 }
