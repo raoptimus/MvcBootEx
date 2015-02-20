@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Web.Mvc;
 using System.Web.WebPages;
 
@@ -26,18 +27,29 @@ namespace MvcBootEx.Html
             builder.MergeAttributes(attr);
 
             var iconList = new HashSet<string>();
+            var iconSpecList = new HashSet<string>();
 
-            foreach (var name in icons.Split(' '))
+            foreach (var name in icons.Split(' ').Where(name => !name.Trim().IsEmpty()))
             {
-                if (name.Trim().IsEmpty())
-                    continue;
-
                 if (name.StartsWith("glyphicon-"))
                 {
                     iconList.Add(name);
                 }
                 else
                 {
+                    if (icons.IndexOf(name + "-") != -1)
+                    {
+                        iconSpecList.Add(name);
+                        iconList.Add(name);
+                        continue;
+                    }
+
+                    if (iconSpecList.Any(spec => name.StartsWith(spec + "-")))
+                    {
+                        iconList.Add(name);
+                        continue;
+                    }
+
                     iconList.Add("glyphicon-" + name);
                 }
             }
