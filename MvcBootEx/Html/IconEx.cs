@@ -31,7 +31,7 @@ namespace MvcBootEx.Html
 
             foreach (var name in icons.Split(' ').Where(name => !name.Trim().IsEmpty()))
             {
-                if (name.StartsWith("glyphicon-"))
+                if (name.StartsWith("glyphicon-") || name.StartsWith("halfling-"))
                 {
                     iconList.Add(name);
                 }
