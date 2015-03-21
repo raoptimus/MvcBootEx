@@ -119,7 +119,7 @@ namespace MvcBootEx.Grid
                             var text = column.Header.IsEmpty() ? column.ColumnName : column.Header;
 
                             WriteTo(razorHelperWriter,
-                                GridLiLink(webGrid, webGrid.GetSortUrl(column.ColumnName), text));
+                                GridLink(webGrid, webGrid.GetSortUrl(column.ColumnName), text));
                         }
                         else
                         {
