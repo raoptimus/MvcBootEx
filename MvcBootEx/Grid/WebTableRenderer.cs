@@ -219,7 +219,7 @@ namespace MvcBootEx.Grid
                 WriteLiteralTo(razorHelperWriter, nav.ToString(TagRenderMode.StartTag));
 
                 var ul = new TagBuilder("ul");
-                ul.AddCssClass("pagination");
+                ul.AddCssClass("pagination pagination-lg");
                 WriteLiteralTo(razorHelperWriter, ul.ToString(TagRenderMode.StartTag));
 
                 WriteTo(razorHelperWriter, GridInitScript(webGrid, httpContext));
